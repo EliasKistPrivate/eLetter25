@@ -1,0 +1,15 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.0.2">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UserSecretsId>89575a31-e237-44ae-b0dd-d9074c1500ac</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\eLetter25.API\eLetter25.API.csproj" />
+    </ItemGroup>
+
+</Project>
