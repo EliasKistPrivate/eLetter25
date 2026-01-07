@@ -15,6 +15,19 @@ builder.Services.AddControllers();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateLetterHandler).Assembly));
 
+builder.Services.AddAuthentication().AddKeycloakJwtBearer(
+    serviceName: "keycloak",
+    realm: "eLetter25API",
+    options =>
+    {
+        options.Audience = "eLetter25.API";
+
+        if (builder.Environment.IsDevelopment())
+        {
+            options.RequireHttpsMetadata = false;
+        }
+    });
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var cs = builder.Configuration.GetConnectionString("eletter25db");
@@ -43,12 +56,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // standard middleware registrations
 
 app.MapControllers();
 app.MapGet("/", () => "eLetter25.API is running...");
-app.MapGet("/health", () => Results.Ok("Healthy"));
 
+app.MapGet("/health", () => Results.Ok("Healthy")).RequireAuthorization();
 app.MapPost("/letters", async (
     CreateLetterRequest request,
     IMediator mediator,

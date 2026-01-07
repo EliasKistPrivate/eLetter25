@@ -9,12 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\eLetter25.API\eLetter25.API.csproj" />
-      <ProjectReference Include="..\eLetter25.Infrastructure\eLetter25.Infrastructure.csproj" />
+        <ProjectReference Include="..\eLetter25.API\eLetter25.API.csproj" />
+        <ProjectReference Include="..\eLetter25.Infrastructure\eLetter25.Infrastructure.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.0.2" />
+        <PackageReference Include="Aspire.Hosting.Keycloak" Version="13.1.0-preview.1.25616.3" />
+        <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.0.2" />
+        <PackageReference Include="Aspire.Keycloak.Authentication" Version="13.1.0-preview.1.25616.3" />
     </ItemGroup>
 
 </Project>
