@@ -25,7 +25,7 @@ public sealed class CreateLetterHandler(ILetterRepository letterRepository, IUni
             .Aggregate(letter, (current, tag) => current.AddTag(tag));
 
         await letterRepository.AddAsync(letter, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new CreateLetterResult(letter.Id);
     }

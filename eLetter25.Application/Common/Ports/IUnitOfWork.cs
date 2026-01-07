@@ -10,5 +10,5 @@ public interface IUnitOfWork
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task CommitAsync(CancellationToken cancellationToken = default);
 }

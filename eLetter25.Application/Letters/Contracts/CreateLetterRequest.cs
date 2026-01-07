@@ -8,6 +8,5 @@ public sealed record CreateLetterRequest(
     DateTimeOffset SentDate,
     CorrespondentDto Sender,
     CorrespondentDto Recipient,
-    
     IEnumerable<string> Tags
 );
