@@ -1,5 +1,8 @@
 <Solution>
-  <Project Path="eLetter25.API/eLetter25.API.csproj" />
+  <Folder Name="/eLetter25.Web/">
+    <Project Path="eLetter25.API/eLetter25.API.csproj" />
+    <Project Path="eLetter25.Client/eLetter25.Client.csproj" />
+  </Folder>
   <Project Path="eLetter25.Application/eLetter25.Application.csproj" />
   <Project Path="eLetter25.Domain/eLetter25.Domain.csproj" />
   <Project Path="eLetter25.Host/eLetter25.Host.csproj" />

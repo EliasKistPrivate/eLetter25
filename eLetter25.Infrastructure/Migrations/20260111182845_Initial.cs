@@ -11,8 +11,12 @@ namespace eLetter25.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "eletter25");
+
             migrationBuilder.CreateTable(
                 name: "Letters",
+                schema: "eletter25",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -43,6 +47,7 @@ namespace eLetter25.Infrastructure.Migrations
 
             migrationBuilder.CreateTable(
                 name: "LetterTags",
+                schema: "eletter25",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -56,6 +61,7 @@ namespace eLetter25.Infrastructure.Migrations
                     table.ForeignKey(
                         name: "FK_LetterTags_Letters_LetterId",
                         column: x => x.LetterId,
+                        principalSchema: "eletter25",
                         principalTable: "Letters",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -63,6 +69,7 @@ namespace eLetter25.Infrastructure.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_LetterTags_LetterId",
+                schema: "eletter25",
                 table: "LetterTags",
                 column: "LetterId");
         }
@@ -71,10 +78,12 @@ namespace eLetter25.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "LetterTags");
+                name: "LetterTags",
+                schema: "eletter25");
 
             migrationBuilder.DropTable(
-                name: "Letters");
+                name: "Letters",
+                schema: "eletter25");
         }
     }
 }
