@@ -17,6 +17,7 @@ namespace eLetter25.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("eletter25")
                 .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -113,7 +114,7 @@ namespace eLetter25.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Letters");
+                    b.ToTable("Letters", "eletter25");
                 });
 
             modelBuilder.Entity("eLetter25.Infrastructure.Persistence.Letters.LetterTagDbEntity", b =>
@@ -136,7 +137,7 @@ namespace eLetter25.Infrastructure.Migrations
 
                     b.HasIndex("LetterId");
 
-                    b.ToTable("LetterTags");
+                    b.ToTable("LetterTags", "eletter25");
                 });
 
             modelBuilder.Entity("eLetter25.Infrastructure.Persistence.Letters.LetterTagDbEntity", b =>
