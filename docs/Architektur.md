@@ -1,7 +1,7 @@
 ﻿# eLetter25 – Softwarearchitektur
 
-**Version:** 1.0  
-**Stand:** 2026-01-07  
+**Version:** 1.1  
+**Stand:** 2026-01-14  
 **Zielgruppe:** Erfahrene Softwareentwickler (Onboarding)
 
 ---
@@ -14,8 +14,8 @@
 - .NET 10.0
 - Clean Architecture mit 4 Schichten (Domain, Application, Infrastructure, API)
 - Command-Handler-Pattern via MediatR
-- Entity Framework Core 10 + SQL Server
-- JWT-basierte Authentifizierung (Keycloak)
+- Entity Framework Core 10 + SQL Server (Letters) + PostgreSQL (Identity)
+- JWT-basierte Authentifizierung (ASP.NET Core Identity)
 - .NET Aspire für lokale Entwicklung/Orchestrierung
 
 ---
@@ -564,6 +564,184 @@ builder.Build().Run();
 - `WaitFor()` erzwingt Start-Reihenfolge
 - Connection String wird automatisch injiziert
 - Keycloak-Konfiguration muss manuell erfolgen (Realm, Client-ID)
+
+---
+
+### 4.6 Auth (Authentifizierung & Autorisierung)
+
+Die Authentifizierungs-Feature folgt dem gleichen Clean Architecture-Pattern wie das Letters-Feature.
+
+#### 4.6.1 Application Layer (eLetter25.Application/Auth)
+
+**Struktur:**
+```
+Application/Auth/
+├── Contracts/
+│   ├── RegisterUserRequest.cs      # Input DTO für Registrierung
+│   └── LoginUserRequest.cs         # Input DTO für Login
+├── Ports/
+│   ├── IJwtTokenGenerator.cs       # Port für JWT-Token-Generierung
+│   ├── IUserAuthenticationService.cs # Port für Authentifizierung
+│   └── IUserRegistrationService.cs  # Port für Registrierung
+├── Options/
+│   └── JwtOptions.cs               # JWT-Konfiguration
+└── UseCases/
+    ├── RegisterUser/
+    │   ├── RegisterUserCommand.cs
+    │   ├── RegisterUserHandler.cs
+    │   └── RegisterUserResult.cs
+    └── LoginUser/
+        ├── LoginUserCommand.cs
+        ├── LoginUserHandler.cs
+        └── LoginUserResult.cs
+```
+
+**Use Case Beispiel (RegisterUser):**
+```csharp
+// Command
+public sealed record RegisterUserCommand(RegisterUserRequest Request) 
+    : IRequest<RegisterUserResult>;
+
+// Handler
+public sealed class RegisterUserHandler(IUserRegistrationService userRegistrationService)
+    : IRequestHandler<RegisterUserCommand, RegisterUserResult>
+{
+    public async Task<RegisterUserResult> Handle(
+        RegisterUserCommand command, 
+        CancellationToken cancellationToken)
+    {
+        var userId = await userRegistrationService.RegisterUserAsync(
+            command.Request.Email,
+            command.Request.Password,
+            command.Request.EnableNotifications,
+            cancellationToken);
+
+        return new RegisterUserResult(userId, "User successfully registered");
+    }
+}
+
+// Result
+public sealed record RegisterUserResult(string UserId, string Message);
+```
+
+**Ports:**
+```csharp
+public interface IJwtTokenGenerator
+{
+    string GenerateToken(string userId, string email, IEnumerable<string> roles);
+}
+
+public interface IUserAuthenticationService
+{
+    Task<(string UserId, string Email, IEnumerable<string> Roles)?> ValidateCredentialsAsync(
+        string email, string password, CancellationToken cancellationToken = default);
+}
+
+public interface IUserRegistrationService
+{
+    Task<string> RegisterUserAsync(
+        string email, string password, bool enableNotifications,
+        CancellationToken cancellationToken = default);
+}
+```
+
+#### 4.6.2 Infrastructure Layer (eLetter25.Infrastructure/Auth)
+
+**Services (Adapters):**
+```
+Infrastructure/Auth/Services/
+├── JwtTokenGenerator.cs           # Implementiert IJwtTokenGenerator
+├── UserAuthenticationService.cs   # Implementiert IUserAuthenticationService
+└── UserRegistrationService.cs     # Implementiert IUserRegistrationService
+```
+
+**Implementierung Beispiel:**
+```csharp
+public sealed class JwtTokenGenerator(IOptions<JwtOptions> jwtOptions) 
+    : IJwtTokenGenerator
+{
+    public string GenerateToken(string userId, string email, IEnumerable<string> roles)
+    {
+        var options = jwtOptions.Value;
+        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SecretKey));
+        var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
+
+        List<Claim> claims =
+        [
+            new(ClaimTypes.NameIdentifier, userId),
+            new(ClaimTypes.Email, email),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            ..roles.Select(r => new Claim(ClaimTypes.Role, r))
+        ];
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddMinutes(options.ExpirationMinutes),
+            Issuer = options.Issuer,
+            Audience = options.Audience,
+            SigningCredentials = credentials
+        };
+
+        var tokenHandler = new JsonWebTokenHandler();
+        return tokenHandler.CreateToken(tokenDescriptor);
+    }
+}
+```
+
+#### 4.6.3 API Layer (eLetter25.API/Auth/Controllers)
+
+**Controller (dünne Orchestratoren):**
+```csharp
+[ApiController]
+[Route("api/auth")]
+public sealed class RegisterController(IMediator mediator) : ControllerBase
+{
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(
+        [FromBody] RegisterUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await mediator.Send(
+                new RegisterUserCommand(request), 
+                cancellationToken);
+            return Ok(new { userId = result.UserId, message = result.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+}
+```
+
+**Wichtig:**
+- Controller sind nur ~15 Zeilen (vorher 60-70 Zeilen)
+- Nur HTTP-Orchestrierung, keine Business-Logik
+- MediatR für Entkopplung
+- Separate Controller für Register und Login (Single Responsibility)
+
+#### 4.6.4 Auth Request-Flow
+
+```
+HTTP POST /api/auth/register
+    ↓
+API: RegisterController
+    ↓ mediator.Send(RegisterUserCommand)
+Application: RegisterUserHandler
+    ↓ userRegistrationService.RegisterUserAsync()
+Infrastructure: UserRegistrationService
+    ↓ UserManager<ApplicationUser>
+Infrastructure: ASP.NET Identity + PostgreSQL
+```
+
+**Vorteile dieser Architektur:**
+- ✅ Testbarkeit: Handler ohne HTTP-Kontext testbar
+- ✅ Wiederverwendbarkeit: Handler aus CLI, gRPC nutzbar
+- ✅ Konsistenz: Gleiches Pattern wie Letters-Feature
+- ✅ Clean Architecture: Keine Infrastructure-Abhängigkeiten in Application
 
 ---
 

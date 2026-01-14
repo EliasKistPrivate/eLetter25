@@ -1,7 +1,6 @@
-using eLetter25.API.Auth.Models;
-using eLetter25.Infrastructure.Auth.Data;
-using eLetter25.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
+using eLetter25.Application.Auth.Contracts;
+using eLetter25.Application.Auth.UseCases.RegisterUser;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace eLetter25.API.Auth.Controllers;
@@ -12,10 +11,7 @@ namespace eLetter25.API.Auth.Controllers;
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
-public sealed class RegisterController(
-    UserManager<ApplicationUser> userManager,
-    AppDbContext appDbContext)
-    : ControllerBase
+public sealed class RegisterController(IMediator mediator) : ControllerBase
 {
     /// <summary>
     /// Registers a new user
@@ -27,34 +23,19 @@ public sealed class RegisterController(
     /// <response code="400">Validation error or registration failed</response>
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(IEnumerable<IdentityError>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register(
-        [FromBody] RegisterRequest request,
+        [FromBody] RegisterUserRequest request,
         CancellationToken cancellationToken = default)
     {
-        await using var transaction = await appDbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        var user = new ApplicationUser
+        try
         {
-            UserName = request.Email,
-            Email = request.Email,
-            EnableNotifications = request.EnableNotifications
-        };
-
-        var identityResult = await userManager.CreateAsync(user, request.Password);
-        if (!identityResult.Succeeded)
-        {
-            return BadRequest(identityResult.Errors);
+            var result = await mediator.Send(new RegisterUserCommand(request), cancellationToken);
+            return Ok(new { userId = result.UserId, message = result.Message });
         }
-
-        var addToRoleResult = await userManager.AddToRoleAsync(user, "User");
-        if (!addToRoleResult.Succeeded)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(addToRoleResult.Errors);
+            return BadRequest(new { error = ex.Message });
         }
-
-        await transaction.CommitAsync(cancellationToken);
-
-        return Ok(new { message = "User successfully registered" });
     }
 }

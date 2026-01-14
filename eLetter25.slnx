@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Docs/">
+    <File Path="docs/Architektur.md" />
+    <File Path="docs/README.md" />
+  </Folder>
   <Folder Name="/eLetter25.Web/">
     <Project Path="eLetter25.API/eLetter25.API.csproj" />
     <Project Path="eLetter25.Client/eLetter25.Client.csproj" />

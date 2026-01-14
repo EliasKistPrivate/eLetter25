@@ -1,9 +1,11 @@
 using System.Text;
-using eLetter25.API.Auth.Options;
+using eLetter25.Application.Auth.Options;
+using eLetter25.Application.Auth.Ports;
 using eLetter25.Application.Common.Ports;
 using eLetter25.Application.Letters.Ports;
 using eLetter25.Application.Letters.UseCases.CreateLetter;
 using eLetter25.Infrastructure.Auth.Data;
+using eLetter25.Infrastructure.Auth.Services;
 using eLetter25.Infrastructure.Persistence;
 using eLetter25.Infrastructure.Persistence.Letters;
 using eLetter25.Infrastructure.Persistence.Letters.Mappings;
@@ -69,10 +71,16 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
+// Application Services
 builder.Services.AddScoped<ILetterDomainToDbMapper, LetterDomainToDbMapper>();
 builder.Services.AddScoped<ILetterDbToDomainMapper, LetterDbToDomainMapper>();
 builder.Services.AddScoped<ILetterRepository, EfLetterRepository>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+// Auth Services
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+builder.Services.AddScoped<IUserAuthenticationService, UserAuthenticationService>();
+builder.Services.AddScoped<IUserRegistrationService, UserRegistrationService>();
 
 var app = builder.Build();
 
@@ -115,4 +123,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
