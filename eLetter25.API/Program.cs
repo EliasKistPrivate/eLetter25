@@ -1,17 +1,27 @@
+using System.Text;
 using eLetter25.Application.Common.Ports;
-using eLetter25.Application.Letters.Contracts;
 using eLetter25.Application.Letters.Ports;
 using eLetter25.Application.Letters.UseCases.CreateLetter;
 using eLetter25.Infrastructure.Auth.Data;
 using eLetter25.Infrastructure.Persistence;
 using eLetter25.Infrastructure.Persistence.Letters;
 using eLetter25.Infrastructure.Persistence.Letters.Mappings;
-using MediatR;
+using etter25.API.Features;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Options Pattern für JWT-Konfiguration mit Validierung
+builder.Services.AddOptions<JwtOptions>()
+    .BindConfiguration(JwtOptions.SectionName)
+    .ValidateDataAnnotations()
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SecretKey), "Jwt:SecretKey fehlt")
+    .ValidateOnStart();
 
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
@@ -28,7 +38,36 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("eletter25-db")));
 
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer();
 
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((options, jwtOpt) =>
+    {
+        var jwt = jwtOpt.Value;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt.Issuer,
+
+            ValidateAudience = true,
+            ValidAudience = jwt.Audience,
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SecretKey)),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<ILetterDomainToDbMapper, LetterDomainToDbMapper>();
 builder.Services.AddScoped<ILetterDbToDomainMapper, LetterDbToDomainMapper>();
@@ -64,21 +103,16 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseHttpsRedirection();
+// Middleware and Endpoints
 
-// standard middleware registrations
+RegisterUser.MapEndpoint(app);
+LoginUser.MapEndpoint(app);
 
-app.MapControllers();
 app.MapGet("/", () => "eLetter25.API is running...");
 
-app.MapGet("/health", () => Results.Ok("Healthy"));
-app.MapPost("/letters", async (
-    CreateLetterRequest request,
-    IMediator mediator,
-    CancellationToken ct) =>
-{
-    var result = await mediator.Send(new CreateLetterCommand(request), ct);
-    return Results.Created($"/letters/{result.LetterId}", result);
-});
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();

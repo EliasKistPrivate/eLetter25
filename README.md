@@ -15,23 +15,42 @@ Das Projekt folgt **Clean Architecture** und **Domain-Driven Design (DDD)** mit 
 
 - .NET 10.0
 - Entity Framework Core 10
-- SQL Server
-- Keycloak (JWT-Authentifizierung)
+- SQL Server (Briefe-Datenbank)
+- PostgreSQL (Identity-Datenbank)
+- ASP.NET Core Identity (JWT-Authentifizierung)
 - .NET Aspire (lokale Entwicklung)
 - MediatR (CQRS-Pattern)
 
 ## 🚀 Schnellstart
 
-```powershell
-# Aspire Host starten (startet SQL Server + Keycloak)
-dotnet run --project eLetter25.Host
+### Voraussetzungen
 
-# Datenbank migrieren
-dotnet ef database update --project eLetter25.Infrastructure --startup-project eLetter25.API
+- **.NET 10.0 SDK** installiert
+- **Docker Desktop** installiert und **gestartet** (wird für SQL Server und PostgreSQL benötigt)
+
+### 1. User Secrets konfigurieren
+
+Der JWT SecretKey muss in den User Secrets des API-Projekts gespeichert werden:
+
+```powershell
+# JWT Secret Key setzen (mindestens 32 Zeichen für HS256)
+dotnet user-secrets set "Jwt:SecretKey" "your-super-secret-key-min-32-chars-long-for-hs256-algorithm" --project eLetter25.API
 ```
 
-Die API läuft unter `http://localhost:5000`  
-Das Aspire Dashboard unter `http://localhost:15000`
+Die JWT Expiration Time wird in der `appsettings.json` des API-Projekts konfiguriert.
+
+### 2. Anwendung starten
+
+```powershell
+# Aspire Host starten (startet SQL Server + PostgreSQL + Angular Client)
+dotnet run --project eLetter25.Host
+```
+
+**Das war's!** Die Datenbank-Migrationen werden automatisch beim Start der API ausgeführt.
+
+- **API:** `https://localhost:7xxx` (Port wird im Terminal angezeigt)
+- **Aspire Dashboard:** `http://localhost:15000`
+- **Angular Client:** `http://localhost:4200`
 
 ## 📖 Dokumentation
 

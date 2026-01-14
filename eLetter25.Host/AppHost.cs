@@ -3,11 +3,13 @@ using Projects;
 var builder = DistributedApplication.CreateBuilder(args);
 
 var usersDb = builder.AddPostgres("Identity")
+    .WithHostPort(5484)
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent)
     .AddDatabase("users-db");
 
 var persistence = builder.AddSqlServer("Persistence")
+    .WithHostPort(6583)
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
