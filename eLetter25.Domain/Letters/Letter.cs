@@ -1,4 +1,5 @@
 ﻿using eLetter25.Domain.Common;
+using eLetter25.Domain.Letters.Events;
 using eLetter25.Domain.Letters.ValueObjects;
 
 namespace eLetter25.Domain.Letters;
@@ -42,6 +43,7 @@ public class Letter : DomainEntity
             SentDate = sentDate,
             CreatedDate = DateTimeOffset.UtcNow,
         };
+        letter.Raise(new LetterCreatedEvent(letter.Id, letter.SentDate, letter.CreatedDate));
         return letter;
     }
 
@@ -52,7 +54,15 @@ public class Letter : DomainEntity
             throw new ArgumentException("Subject cannot be null or whitespace.", nameof(subject));
         }
 
-        Subject = subject.Trim();
+        var normalizedSubject = subject.Trim();
+        if (string.Equals(Subject, normalizedSubject, StringComparison.Ordinal))
+        {
+            return this;
+        }
+
+        var previousSubject = Subject;
+        Subject = normalizedSubject;
+        Raise(new LetterSubjectChangedEvent(Id, previousSubject, Subject));
         return this;
     }
 
@@ -72,16 +82,23 @@ public class Letter : DomainEntity
     public Letter AddTag(Tag tag)
     {
         var tags = Tags.ToList();
+        if (tags.Any(existingTag => existingTag.Equals(tag)))
+        {
+            return this;
+        }
+
         tags.Add(tag);
         Tags = tags;
+        Raise(new LetterTagAddedEvent(Id, tag.Value));
         return this;
     }
 
     public Letter AddTags(IEnumerable<Tag> tags)
     {
-        var currentTags = Tags.ToList();
-        currentTags.AddRange(tags);
-        Tags = currentTags;
+        foreach (var tag in tags)
+        {
+            AddTag(tag);
+        }
         return this;
     }
 
