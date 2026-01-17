@@ -6,6 +6,8 @@ using eLetter25.Application.Letters.Ports;
 using eLetter25.Application.Letters.UseCases.CreateLetter;
 using eLetter25.Infrastructure.Auth.Data;
 using eLetter25.Infrastructure.Auth.Services;
+using eLetter25.Infrastructure.DomainEvents;
+using eLetter25.Infrastructure.Observability;
 using eLetter25.Infrastructure.Persistence;
 using eLetter25.Infrastructure.Persistence.Letters;
 using eLetter25.Infrastructure.Persistence.Letters.Mappings;
@@ -76,6 +78,9 @@ builder.Services.AddScoped<ILetterDomainToDbMapper, LetterDomainToDbMapper>();
 builder.Services.AddScoped<ILetterDbToDomainMapper, LetterDbToDomainMapper>();
 builder.Services.AddScoped<ILetterRepository, EfLetterRepository>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+builder.Services.AddScoped<IDomainEventCollector, DomainEventCollector>();
+builder.Services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
+builder.Services.AddScoped<IAuditWriter, LoggerAuditWriter>();
 
 // Auth Services
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
